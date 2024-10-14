@@ -3,8 +3,16 @@
 <%@ page import="com.grocery.model.CartItem" %>
 
 <%
-    List<CartItem> cartItems = (List<CartItem>) request.getAttribute("cartItems");
+    // Retrieve cart items from session
+    List<CartItem> cartItems = (List<CartItem>) session.getAttribute("cartItems");
     double totalAmount = 0;
+
+    // Calculate total amount only if cartItems is not null or empty
+    if (cartItems != null) {
+        for (CartItem item : cartItems) {
+            totalAmount += item.getPrice() * item.getQuantity();
+        }
+    }
 %>
 
 <!DOCTYPE html>
@@ -50,9 +58,6 @@
                                 </form>
                             </div>
                         </div>
-                        <%
-                            totalAmount += item.getPrice() * item.getQuantity();
-                        %>
                     <% } %>
                 <% } else { %>
                     <p class="text-center text-danger">Your cart is empty.</p>
@@ -66,7 +71,7 @@
                         for (CartItem item : cartItems) { %>
                             <li class="list-group-item d-flex justify-content-between">
                                 <span><%= item.getProductName() %></span>
-                                <span>₹<%= item.getPrice()* item.getQuantity() %></span>
+                                <span>₹<%= item.getPrice() * item.getQuantity() %></span>
                             </li>
                     <% } } else { %>
                         <li class="list-group-item">No products in the cart.</li>
@@ -80,9 +85,19 @@
 
                 <form action="payment.jsp" method="post" class="mt-3">
                     <input type="hidden" name="totalAmount" value="<%= totalAmount %>">
-                    <input type="hidden" name="cartItems">
-                    <input type="hidden" name="cartItems" value="<% for (CartItem item : cartItems) { %>
-                        <%= item.getProductId() %>,<%= item.getProductName() %>,<%= item.getPrice() %>,<%= item.getQuantity() %>,<%= item.getProductImage() %>;<% } %>">
+                    <%
+                        if (cartItems != null) {
+                            StringBuilder cartItemsData = new StringBuilder();
+                            for (CartItem item : cartItems) {
+                                cartItemsData.append(item.getProductId()).append(":")
+                                             .append(item.getProductName()).append(":")
+                                             .append(item.getPrice()).append(":")
+                                             .append(item.getQuantity()).append(":")
+                                             .append(item.getProductImage()).append(";");
+                            }
+                    %>
+                        <input type="hidden" name="cartItems" value="<%= cartItemsData.toString() %>">
+                    <% } %>
                     <button type="submit" class="btn btn-success w-100">Proceed to Checkout</button>
                 </form>
             </div>

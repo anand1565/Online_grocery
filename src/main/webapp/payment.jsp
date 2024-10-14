@@ -4,20 +4,33 @@
 <%@ page import="com.grocery.model.CartItem" %>
 
 <%
-    // Get total amount from the request
+    // Get cart items and total amount from the request
+    String cartItemsData = request.getParameter("cartItems");
     double totalAmount = Double.parseDouble(request.getParameter("totalAmount"));
     
-    // Retrieve cart items from the request
-    String[] cartItemsArray = request.getParameterValues("cartItems");
-    List<CartItem> cartItems = new ArrayList<>();
+    String paymentMode = request.getParameter("paymentMethod");
 
-    for (String item : cartItemsArray) {
-        String[] details = item.split(":");
-        String productId = details[0];
-        String productName = details[1];
-        double price = Double.parseDouble(details[2]);
-        int quantity = Integer.parseInt(details[3]);
-        cartItems.add(new CartItem(productId, productName, price, quantity, "imagePath")); // Add productImage as needed
+    // Store payment details in the session
+    session.setAttribute("paymentMode", paymentMode);
+    session.setAttribute("totalAmount", totalAmount);
+
+    // Parse the cart items from the serialized string
+    List<CartItem> cartItems = new ArrayList<>();
+    if (cartItemsData != null && !cartItemsData.isEmpty()) {
+        String[] items = cartItemsData.split(";");
+        for (String itemData : items) {
+            String[] details = itemData.split(":");
+            if (details.length == 5) {  // Ensure all fields are present
+                CartItem item = new CartItem(
+                    details[0],                 // productId (String)
+                    details[1],                 // productName
+                    Double.parseDouble(details[2]), // price
+                    Integer.parseInt(details[3]),  // quantity
+                    details[4]                  // productImage
+                );
+                cartItems.add(item);
+            }
+        }
     }
 %>
 
@@ -30,28 +43,32 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
+    <jsp:include page="userNav.jsp" />
     <div class="container mt-5">
-        <h1>Payment Options</h1>
-        <form action="invoice.jsp" method="post">
-            <div class="mb-3">
-                <label for="paymentMethod" class="form-label">Select Payment Method:</label>
-                <select id="paymentMethod" name="paymentMethod" class="form-select" required>
-                    <option value="">Choose...</option>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="Debit Card">Debit Card</option>
-                    <option value="Net Banking">Net Banking</option>
-                </select>
+        <h1 class="text-center mb-4">Payment Options</h1>
+
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <form action="invoice.jsp" method="post">
+                    <div class="form-group mb-3">
+                        <label for="paymentMethod" class="form-label">Select Payment Method:</label>
+                        <select name="paymentMethod" id="paymentMethod" class="form-control" required>
+                            <option value="Credit Card">Credit Card</option>
+                            <option value="Debit Card">Debit Card</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cash on Delivery">Cash on Delivery</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="totalAmount" value="<%= totalAmount %>">
+
+                    <%-- Serialize cart items again to pass to invoice.jsp --%>
+                    <input type="hidden" name="cartItems" value="<%= cartItemsData %>">
+
+                    <button type="submit" class="btn btn-primary w-100">Pay Now</button>
+                </form>
             </div>
-            <input type="hidden" name="totalAmount" value="<%= totalAmount %>">
-            <%
-                for (CartItem item : cartItems) {
-            %>
-                <input type="hidden" name="cartItems" value="<%= item.getProductId() + ':' + item.getProductName() + ':' + item.getPrice() + ':' + item.getQuantity() %>">
-            <%
-                }
-            %>
-            <button type="submit" class="btn btn-primary">Pay Now</button>
-        </form>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
